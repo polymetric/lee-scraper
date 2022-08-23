@@ -56,21 +56,29 @@ driver = webdriver.Chrome('chromedriver', options=chrome_options)
 #    link = item.find_element(By.XPATH, "./div[@class='colours-list__tooltip-wrapper']/a").get_attribute('href')
 #    color_links.append(link)
 #
+
+colors = {}
+if os.path.exists('colors.json'):
+    f=open('colors.json', 'r')
+    colors = json.loads(f.read())
+    f.close()
+print(f'loaded {len(colors)} existing colors')
+before_len = len(colors)
+
 color_links = [1]
 print('scraping individual color pages')
-colors = {}
 for link in color_links:
 #    driver.get(link)
     driver.get("https://leefilters.com/colour/002-rose-pink/")
     name_and_code = driver.find_element(By.XPATH, "//div[@class='page-header__text']").text
     name_and_code = re.search(r'(\d*) (.*)', name_and_code)
-    name = name_and_code.group(1)
-    code = name_and_code.group(2)
+    code = name_and_code.group(1)
+    name = name_and_code.group(2)
     desc = driver.find_element(By.XPATH, "//div[@class='page-header__colour-desc']").text
     rgb_raw = driver.find_element(By.XPATH, "//div[@class='page-header__colour']").get_attribute('style')
     rgb = re.search(r'(#[\d|\w]*)', rgb_raw).group(1)
     color_graph = driver.find_element(By.XPATH, "//div[@class='colour__graph-wrapper init']/*[local-name()='svg']")
-    graph_tooltips = color_graph.find_elements(By.XPATH, "//*[local-name()='circle']")
+    graph_tooltips = color_graph.find_elements(By.XPATH, ".//*[local-name()='circle']")
     graph = {}
     for i in graph_tooltips:
         text = i.get_attribute('title')
@@ -82,12 +90,14 @@ for link in color_links:
     tungsten_specs = trans_specs.find_element(By.XPATH, "./li/h2[text()='Tungsten']/..")
     daylight_specs = trans_specs.find_element(By.XPATH, "./li/h2[text()='Daylight (Source C)']/..")
     def get_specs(parent):
-        trans = parent.find_element(By.XPATH, "//span[text()='Transmission Y']/../span[@class='spec-list__value']").text
-        x = parent.find_element(By.XPATH, "//span[text()='x']/../span[@class='spec-list__value']").text
-        y = parent.find_element(By.XPATH, "//span[text()='y']/../span[@class='spec-list__value']").text
-        absorption = parent.find_element(By.XPATH, "//span[text()='Absorption']/../span[@class='spec-list__value']").text
+        trans = parent.find_element(By.XPATH, ".//span[text()='Transmission Y']/../span[@class='spec-list__value']").text
+        x = parent.find_element(By.XPATH, ".//span[text()='x']/../span[@class='spec-list__value']").text
+        y = parent.find_element(By.XPATH, ".//span[text()='y']/../span[@class='spec-list__value']").text
+        absorption = parent.find_element(By.XPATH, ".//span[text()='Absorption']/../span[@class='spec-list__value']").text
         return(trans, x, y, absorption)
     (daylight_trans, daylight_x, daylight_y, daylight_absorption) = get_specs(daylight_specs)
+    driver.find_element(By.XPATH, "//select[@class='colour__transmission-switcher']").click()
+    driver.find_element(By.XPATH, "//option[text()='Tungsten']").click()
     (tungsten_trans, tungsten_x, tungsten_y, tungsten_absorption) = get_specs(tungsten_specs)
 
     # insert values into dictionary
@@ -106,9 +116,9 @@ for link in color_links:
     colors[code]['daylight_specs']['x'] = daylight_x
     colors[code]['daylight_specs']['y'] = daylight_y
     colors[code]['daylight_specs']['absorption'] = daylight_absorption
-    print(colors)
 
-
-#    tungsten_trans = 
-
+print(f'found {len(colors)-before_len} new colors')
+f=open('colors.json', 'w')
+f.write(json.dumps(colors, indent=4))
+f.close()
 
